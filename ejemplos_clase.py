@@ -65,7 +65,7 @@ def insert_nacionalidad( name):
         VALUES (?);""", (name,))
 
     conn.commit()
-    # Cerrar la conexión con la base de datos
+    
     conn.close()
 
 
