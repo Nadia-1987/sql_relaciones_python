@@ -165,6 +165,21 @@ def search_by_tutor(tutor):
     c.execute("""SELECT e.id, e.name, e.age, t.name
                  FROM estudiante as e, tutor as t
                  WHERE e.fk_tutor_id = ?;""", (tutor,))
+    
+    #Inove:
+    # Este caso puntual es el ms dificil de resolver, porque se solicita encontrar
+    # todos los estudiantes que tengan un determinado tutor, pero el tutor se pasa como "nombre" (name)
+    # y no su ID, mientras que la tabla de estudiante tienen IDs de tutores
+    # El problema en la implementacin anteriores es que se estaba comparando el ID del tutor con su nombre:
+    # WHERE e.fk_tutor_id = ? --> WHERE e.fk_tutor_id = tutor, tutor es el nombre (string) y no el ID que es nuerico
+    # Por lo tanto el ID del tutor del estudiante se debe comparar con el "ID" del tutor, es como realizar un INNER JOINT:
+    #  --> WHERE e.fk_tutor_id = t.id
+    # Pero no queremos obtener los tutores, solo nos interesa el tutor que tenga el name almaenado en "tutor"
+    # Es por eso queagregamos:
+    # WHERE e.fk_tutor_id = t.id AND t.name = ?. --> WHERE e.fk_tutor_id = t.id AND t.name = tutor
+    c.execute("""SELECT e.id, e.name, e.age, t.name
+                 FROM estudiante as e, tutor as t
+                 WHERE e.fk_tutor_id = t.id AND t.name = ?;""", (tutor,))
 
     while True:
         row = c.fetchone()
@@ -199,7 +214,20 @@ def modify(id, name):
                         WHERE t.id =?)
                         WHERE id =?""", (id, name)).rowcount
     
-    
+    # Inove:
+    # La implementación anterior estaba muuuuy cerca, solo faltaba un pequeño
+    # cambio en el orden de las variables pasadas a la query
+    # Orden --> EN la implemnentación anterior estaba (id, name)
+    # Pero en la query primero se utiliza el nombre del tutor y luego se utiliza el ID del alaumno
+    # Por lo que:
+    # orden correcto --> (name, id)
+    # Por otro lado, la condicin de búsqueda del tutor es por su nombre, es decir, por "t.name":
+    # --> WHERE t.name =?
+    rowcount = c.execute("""UPDATE estudiante
+                    SET fk_tutor_id = 
+                    (SELECT t.id FROM tutor as t 
+                    WHERE t.name =?)
+                    WHERE id =?""", (name, id)).rowcount
     
     
     print('Filas actualizadas:', rowcount)
@@ -254,6 +282,8 @@ if __name__ == '__main__':
     tutor = 'Angel'
     search_by_tutor(tutor)
 
+    # Inove: Ojo! Javier no existe en la tabla de tutores, debemos agregarlo:
+    fill('Javier')
     nuevo_tutor = 'Javier'
     id = 2
     
